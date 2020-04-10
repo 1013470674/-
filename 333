@@ -1,0 +1,104 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+#include <stack>
+using namespace std;
+
+bool isOpr(char);
+char precede(char,char);
+float operate(float,char,float);
+
+int main(){
+    char c;
+    stack<float> res;   //保存操作数和结果的栈
+    stack<char> opr;  //保存操作码的栈
+    opr.push('#');  //‘#’入栈，便于之后的判断
+    c = getchar();
+
+    while(c != '#' || opr.top() != '#'){  //输入没结束或者操作码的栈不为空
+        if(!isOpr(c)){   //c是操作数
+            res.push(c - '0');   //将字符c转换成数字压入栈
+            c = getchar();
+        }else{     //c为操作码
+            switch(precede(opr.top(),c)){  //判断栈顶操作码和c的优先级
+            case('<'):     //输入字符c的优先级较大
+                opr.push(c);   //c入栈
+                c = getchar();
+                break;
+            case('>'):{     //输入字符c的优先级较小
+                char theta = opr.top();   //得到栈顶操作码
+                opr.pop();     //栈顶操作码出栈
+                float b = res.top();   //取出res栈的两个操作数a和b
+                res.pop();
+                float a = res.top();
+                res.pop();
+                res.push(operate(a,theta,b)); //将a theta b运算结果入栈res
+                break;
+            }
+            case('='):  //无用的括号
+                opr.pop();   //无用的括号出栈
+                c = getchar();
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    cout<<res.top()<<endl;   //res栈顶的数即最终的计算结果
+    return 0;
+}
+
+bool isOpr(char c){ //判断c是否为操作码，是则返回true，否则返回false
+    if(c == '+' || c == '-' || c == '*' || c == '/' || c == '#' || c == '(' || c == ')'){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+char precede(char a,char b){ //比较操作码a和b的优先级
+    switch(a){
+    case('+'):case('-'):
+        switch(b){
+        case('+'):case('-'):case(')'):case('#'): return '>';
+        case('*'):case('/'):case('('): return '<';
+        }
+        break;
+    case('*'):case('/'):
+        switch(b){
+        case('+'):case('-'):case(')'):case('#'):case('*'):case('/'): return '>';
+        case('('): return '<';
+        }
+        break;
+    case('('):
+        switch(b){
+        case('+'):case('-'):case('('):case('*'):case('/'): return '<';
+        case(')'): return '=';
+        }
+        break;
+    case(')'):
+        switch(b){
+        case('+'):case('-'):case('*'):case('/'):case(')'):case('#'): return '>';
+        }
+        break;
+    case('#'):
+        switch(b){
+        case('+'):case('-'):case('*'):case('/'):case('('): return '<';
+        case('#'): return '=';
+        }
+        break;
+    }
+}
+
+float operate(float a,char op,float b){   //计算表达式 a op b
+    switch(op){
+    case('+'):
+        return a+b;
+    case('-'):
+        return a-b;
+    case('*'):
+        return a*b;
+    case('/'):
+        return a/b;
+    }
+ }
