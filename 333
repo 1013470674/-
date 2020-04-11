@@ -1,104 +1,108 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <iostream>
-#include <stack>
-using namespace std;
-
-bool isOpr(char);
-char precede(char,char);
-float operate(float,char,float);
-
-int main(){
-    char c;
-    stack<float> res;   //保存操作数和结果的栈
-    stack<char> opr;  //保存操作码的栈
-    opr.push('#');  //‘#’入栈，便于之后的判断
-    c = getchar();
-
-    while(c != '#' || opr.top() != '#'){  //输入没结束或者操作码的栈不为空
-        if(!isOpr(c)){   //c是操作数
-            res.push(c - '0');   //将字符c转换成数字压入栈
-            c = getchar();
-        }else{     //c为操作码
-            switch(precede(opr.top(),c)){  //判断栈顶操作码和c的优先级
-            case('<'):     //输入字符c的优先级较大
-                opr.push(c);   //c入栈
-                c = getchar();
-                break;
-            case('>'):{     //输入字符c的优先级较小
-                char theta = opr.top();   //得到栈顶操作码
-                opr.pop();     //栈顶操作码出栈
-                float b = res.top();   //取出res栈的两个操作数a和b
-                res.pop();
-                float a = res.top();
-                res.pop();
-                res.push(operate(a,theta,b)); //将a theta b运算结果入栈res
-                break;
-            }
-            case('='):  //无用的括号
-                opr.pop();   //无用的括号出栈
-                c = getchar();
-                break;
-            default:
-                break;
-            }
-        }
-    }
-    cout<<res.top()<<endl;   //res栈顶的数即最终的计算结果
-    return 0;
+import java.util.Scanner;
+ 
+ 
+//模拟生产者与消费者案例
+public class Test {
+	public static void main(String[] args) {
+		int pro, con;
+		Scanner input = new Scanner(System.in);
+		System.out.print("请输入生产者数目：");
+		pro = input.nextInt();
+		System.out.print("请输入消费者数目：");
+		con = input.nextInt();
+		for (int i = 0; i < pro; i++) {
+			new Thread(new Producer(), "生产者" + Integer.toString(i) + "号").start();
+		}
+		for (int i = 0; i < con; i++) {
+			new Thread(new Consumer(), "消费者者" + Integer.toString(i) + "号").start();
+		}
+	}
 }
-
-bool isOpr(char c){ //判断c是否为操作码，是则返回true，否则返回false
-    if(c == '+' || c == '-' || c == '*' || c == '/' || c == '#' || c == '(' || c == ')'){
-        return true;
-    }else{
-        return false;
-    }
+ 
+//全局变量
+class Global {
+	public static Semaphore empty = new Semaphore(5);
+	public static Semaphore full = new Semaphore(0);
+	public static Semaphore mutex = new Semaphore(1);
+	public static int count = 0;
+ 
+	//随机等待
+	public static void naps() {
+		try {
+			Thread.sleep((int) (2000 * Math.random()));
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+		
 }
-
-char precede(char a,char b){ //比较操作码a和b的优先级
-    switch(a){
-    case('+'):case('-'):
-        switch(b){
-        case('+'):case('-'):case(')'):case('#'): return '>';
-        case('*'):case('/'):case('('): return '<';
-        }
-        break;
-    case('*'):case('/'):
-        switch(b){
-        case('+'):case('-'):case(')'):case('#'):case('*'):case('/'): return '>';
-        case('('): return '<';
-        }
-        break;
-    case('('):
-        switch(b){
-        case('+'):case('-'):case('('):case('*'):case('/'): return '<';
-        case(')'): return '=';
-        }
-        break;
-    case(')'):
-        switch(b){
-        case('+'):case('-'):case('*'):case('/'):case(')'):case('#'): return '>';
-        }
-        break;
-    case('#'):
-        switch(b){
-        case('+'):case('-'):case('*'):case('/'):case('('): return '<';
-        case('#'): return '=';
-        }
-        break;
-    }
+ 
+//生产者
+class Producer implements Runnable {
+	
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		Global.naps();
+		System.out.println(Thread.currentThread().getName() + "  生产出一个商品...");
+		Global.empty.P();
+		Global.mutex.P();
+		Global.naps();
+		System.out.println(Thread.currentThread().getName() + "  将产品放入缓冲区--缓冲区剩余 " 
+				+ (++Global.count) + " 个产品");
+		Global.mutex.V();
+		Global.full.V();
+		
+	}
 }
+ 
+//消费者
+class Consumer implements Runnable {
+ 
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		Global.naps();
+		Global.full.P();
+		Global.mutex.P();
+		Global.naps();
+		System.out.println(Thread.currentThread().getName() + "  从缓冲区取出一个产品--缓冲区剩余 "
+				+ (--Global.count) + " 个产品");
+		Global.mutex.V();
+		Global.empty.V();
+		System.out.println(Thread.currentThread().getName() + "  消费一个商品...");
+ 
+	}
+}
+ 
+//信号量
+class Semaphore {
+	public int value;
+ 
+	public Semaphore(int value) {
+		super();
+		this.value = value;
+	}
+	//P操作
+	public synchronized final void P() {
+		// TODO Auto-generated method stub
+		value--;
+		if(value < 0) {
+			try {
+				this.wait();
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+	//V操作
+	public synchronized final void V() {
+		// TODO Auto-generated method stub
+		value++;
+		if (value <= 0) {
+			this.notify();
+		}
+	}
 
-float operate(float a,char op,float b){   //计算表达式 a op b
-    switch(op){
-    case('+'):
-        return a+b;
-    case('-'):
-        return a-b;
-    case('*'):
-        return a*b;
-    case('/'):
-        return a/b;
-    }
- }
